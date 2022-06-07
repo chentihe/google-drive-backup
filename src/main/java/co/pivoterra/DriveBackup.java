@@ -1,6 +1,6 @@
 package co.pivoterra;
 
-import co.pivoterra.utils.GoogleMimeTypeMapper;
+import co.pivoterra.utils.GoogleMimeTypeHandler;
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
@@ -13,10 +13,11 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
-import com.google.api.services.drive.model.File;
-import com.google.api.services.drive.model.FileList;
 
-import java.io.*;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.List;
@@ -43,7 +44,7 @@ public class DriveBackup {
 
     private static final String CREDENTIALS_FILE_PATH = "/credentials.json";
 
-    private static final GoogleMimeTypeMapper googleMimeTypeMapper = new GoogleMimeTypeMapper();
+    private static final GoogleMimeTypeHandler googleMimeTypeHandler = new GoogleMimeTypeHandler();
 
     /**
      * Creates an authorized Credential object.
@@ -52,6 +53,7 @@ public class DriveBackup {
      * @return An authorized Credential object.
      * @throws IOException If the credentials.json file cannot be found.
      */
+    // todo: replace credential with service account instead of OAuth
     private static Credential getCredentials(final NetHttpTransport HTTP_TRANSPORT) throws IOException {
         // Load client secrets.
         InputStream in = DriveBackup.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
@@ -68,7 +70,7 @@ public class DriveBackup {
                 .build();
         LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(8888).build();
         Credential credential = new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
-        //returns an authorized Credential object.
+        // returns an authorized Credential object.
         return credential;
     }
 
@@ -78,32 +80,6 @@ public class DriveBackup {
         Drive service = new Drive.Builder(HTTP_TRANSPORT, JSON_FACTORY, getCredentials(HTTP_TRANSPORT))
                 .setApplicationName(APPLICATION_NAME)
                 .build();
-//        HttpRequestInitializer requestInitializer = new HttpCredentialsAdapter(ServiceAccountCredentials.fromStream(new FileInputStream(file1))
-//                .createScoped(DriveScopes.all()));
-//        Drive drive = new Drive.Builder(HTTP_TRANSPORT, JSON_FACTORY, requestInitializer)
-//                .setApplicationName(ApplicationName).build();
-
-        // Print the names and IDs for up to 10 files.
-        FileList result = service.files().list()
-                .setPageSize(10)
-                .setFields("nextPageToken, files(id, name, mimeType)")
-                .execute();
-        List<File> files = result.getFiles();
-        if (files == null || files.isEmpty()) {
-            System.out.println("No files found.");
-        } else {
-            System.out.println("Files:");
-            for (File file : files) {
-                System.out.printf("%s (%s), mimeType: %s\n", file.getName(), file.getId(), file.getMimeType());
-                final ByteArrayOutputStream baos = googleMimeTypeMapper.createBaos(service, file, file.getMimeType());
-                final FileOutputStream fos = new FileOutputStream("/home/tihe/Desktop/test/" + file.getName());
-                try {
-                    baos.writeTo(fos);
-                } finally {
-                    fos.close();
-                }
-
-            }
-        }
+        googleMimeTypeHandler.createFoldersOrDownloadFiles(service, googleMimeTypeHandler.createFirstLayerFolders(service));
     }
 }
