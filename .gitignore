@@ -2,4 +2,5 @@ tokens/
 target/
 test/
 .idea/
+logs/
 src/**/resources/credentials.json

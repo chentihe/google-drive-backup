@@ -1,0 +1,19 @@
+lastBackupDate: "2022-06-08T14:37:18.085207Z"
+rootFolderPath: "/home/tihe/Desktop/test"
+googleMimeTypes:
+- googleFormat: "application/vnd.google-apps.document"
+  exportFormat: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  fileExtension: ".docx"
+- googleFormat: "application/vnd.google-apps.spreadsheet"
+  exportFormat: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  fileExtension: ".xlsx"
+- googleFormat: "application/vnd.google-apps.presentation"
+  exportFormat: "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+  fileExtension: ".pptx"
+fields:
+  files: "nextPageToken, files(id, name, mimeType, parents, modifiedTime, shortcutDetails)"
+  file: "id, name, mimeType, parents, modifiedTime"
+query:
+  folder: "mimeType='application/vnd.google-apps.folder'"
+  file: "mimeType!='application/vnd.google-apps.folder' and mimeType!='application/vnd.google-apps.shortcut'\
+    \ and mimeType='application/vnd.google-apps.map'"
