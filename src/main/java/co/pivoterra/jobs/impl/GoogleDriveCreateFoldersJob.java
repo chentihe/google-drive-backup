@@ -1,6 +1,6 @@
-package co.pivoterra.strategies.impl;
+package co.pivoterra.jobs.impl;
 
-import co.pivoterra.strategies.GoogleDriveBackupStrategy;
+import co.pivoterra.jobs.GoogleDriveBackupComposite;
 import co.pivoterra.utils.GoogleConstants;
 import co.pivoterra.utils.GoogleDriveUtils;
 import com.google.api.services.drive.Drive;
@@ -17,11 +17,12 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class GoogleDriveCreateFoldersStrategy implements GoogleDriveBackupStrategy {
-    private final Logger LOG = Logger.getLogger(GoogleDriveCreateFoldersStrategy.class);
+public class GoogleDriveCreateFoldersJob implements GoogleDriveBackupComposite {
+    private final Logger LOG = Logger.getLogger(GoogleDriveCreateFoldersJob.class);
 
     @Override
-    public void execute(Drive service)  throws IOException {
+    public void backup(Drive service)  throws IOException {
+        LOG.info("Starting Backup Folders");
         String pageToken = null;
         AtomicInteger createdFolders = new AtomicInteger();
         final LocalTime startDownload = LocalTime.now();

@@ -1,7 +1,7 @@
-package co.pivoterra.strategies.impl;
+package co.pivoterra.jobs.impl;
 
 import co.pivoterra.pojos.GoogleMimeType;
-import co.pivoterra.strategies.GoogleDriveBackupStrategy;
+import co.pivoterra.jobs.GoogleDriveBackupComposite;
 import co.pivoterra.utils.GoogleConstants;
 import co.pivoterra.utils.GoogleDriveUtils;
 import com.google.api.services.drive.Drive;
@@ -19,11 +19,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class GoogleDriveDownloadFilesStrategy implements GoogleDriveBackupStrategy {
-    private final Logger LOG = Logger.getLogger(GoogleDriveDownloadFilesStrategy.class);
+public class GoogleDriveDownloadFilesJob implements GoogleDriveBackupComposite {
+    private final Logger LOG = Logger.getLogger(GoogleDriveDownloadFilesJob.class);
 
     @Override
-    public void execute(Drive service) throws IOException {
+    public void backup(Drive service) throws IOException {
+        LOG.info("Starting Backup Files");
         String pageToken = null;
         AtomicInteger downloadFiles = new AtomicInteger();
         final LocalTime startDownload = LocalTime.now();
