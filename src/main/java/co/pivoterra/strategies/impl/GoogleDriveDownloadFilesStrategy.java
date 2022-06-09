@@ -1,13 +1,12 @@
 package co.pivoterra.strategies.impl;
 
-import co.pivoterra.pojos.GoogleDrive;
+import co.pivoterra.pojos.GoogleMimeType;
 import co.pivoterra.strategies.GoogleDriveBackupStrategy;
 import co.pivoterra.utils.GoogleConstants;
 import co.pivoterra.utils.GoogleDriveUtils;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
-import javafx.util.Pair;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.log4j.Logger;
 
@@ -22,13 +21,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class GoogleDriveDownloadFilesStrategy implements GoogleDriveBackupStrategy {
     private final Logger LOG = Logger.getLogger(GoogleDriveDownloadFilesStrategy.class);
-    private final GoogleDriveUtils googleDriveUtils = new GoogleDriveUtils();
-
-    private final GoogleDrive googleDrive;
-
-    public GoogleDriveDownloadFilesStrategy(GoogleDrive googleDrive) {
-        this.googleDrive = googleDrive;
-    }
 
     @Override
     public void execute(Drive service) throws IOException {
@@ -37,8 +29,10 @@ public class GoogleDriveDownloadFilesStrategy implements GoogleDriveBackupStrate
         final LocalTime startDownload = LocalTime.now();
 
         do {
-            FileList result = GoogleDriveUtils.fetchFileList(service, GoogleConstants.FILES_FIELDS,
-                    GoogleConstants.GET_FILE_QUERY, googleDrive.getLastBackupDate(), pageToken);
+            FileList result = GoogleDriveUtils.fetchFileList(service,
+                    GoogleDriveUtils.getGoogleDriveConfig().getFields().get(GoogleConstants.FILES),
+                    GoogleDriveUtils.getGoogleDriveConfig().getQuery().get(GoogleConstants.FILE),
+                    GoogleDriveUtils.getGoogleDriveConfig().getLastBackupDate(), pageToken);
             List<File> files = result.getFiles();
 
             if (CollectionUtils.isNotEmpty(files)) {
@@ -64,10 +58,11 @@ public class GoogleDriveDownloadFilesStrategy implements GoogleDriveBackupStrate
         Path path = GoogleDriveUtils.getFilePath(service, file);
 
         try {
-            if (Objects.nonNull(googleDriveUtils.getGoogleMimeTypes().get(mimeType))) {
-                final Pair<String, String> googleMimeType = googleDriveUtils.getGoogleMimeTypes().get(mimeType);
-                fos = new FileOutputStream(path.toAbsolutePath() + googleMimeType.getValue());
-                service.files().export(file.getId(), googleMimeType.getKey())
+            // google mimetype needs to invoke service.files().export()
+            final GoogleMimeType googleMimeType = GoogleDriveUtils.getGoogleDriveConfig().getGoogleMimeTypes().get(mimeType);
+            if (Objects.nonNull(googleMimeType)) {
+                fos = new FileOutputStream(path.toAbsolutePath() + googleMimeType.getFileExtension());
+                service.files().export(file.getId(), googleMimeType.getExportFormat())
                         .executeMediaAndDownloadTo(fos);
             } else {
                 fos = new FileOutputStream(path.toAbsolutePath().toString());

@@ -1,6 +1,5 @@
 package co.pivoterra.strategies.impl;
 
-import co.pivoterra.pojos.GoogleDrive;
 import co.pivoterra.strategies.GoogleDriveBackupStrategy;
 import co.pivoterra.utils.GoogleConstants;
 import co.pivoterra.utils.GoogleDriveUtils;
@@ -20,11 +19,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class GoogleDriveCreateFoldersStrategy implements GoogleDriveBackupStrategy {
     private final Logger LOG = Logger.getLogger(GoogleDriveCreateFoldersStrategy.class);
-    private final GoogleDrive googleDrive;
-
-    public GoogleDriveCreateFoldersStrategy(GoogleDrive googleDrive) {
-        this.googleDrive = googleDrive;
-    }
 
     @Override
     public void execute(Drive service)  throws IOException {
@@ -33,8 +27,10 @@ public class GoogleDriveCreateFoldersStrategy implements GoogleDriveBackupStrate
         final LocalTime startDownload = LocalTime.now();
 
         do {
-            FileList result = GoogleDriveUtils.fetchFileList(service, GoogleConstants.FILES_FIELDS,
-                    GoogleConstants.GET_FOLDER_QUERY, googleDrive.getLastBackupDate(), pageToken);
+            FileList result = GoogleDriveUtils.fetchFileList(service,
+                    GoogleDriveUtils.getGoogleDriveConfig().getFields().get(GoogleConstants.FILES),
+                    GoogleDriveUtils.getGoogleDriveConfig().getQuery().get(GoogleConstants.FOLDER),
+                    GoogleDriveUtils.getGoogleDriveConfig().getLastBackupDate(), pageToken);
             List<File> files = result.getFiles();
 
             if (CollectionUtils.isNotEmpty(files)) {

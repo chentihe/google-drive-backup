@@ -1,13 +1,9 @@
 package co.pivoterra;
 
-import co.pivoterra.pojos.GoogleDrive;
 import co.pivoterra.strategies.impl.GoogleDriveCreateFoldersStrategy;
 import co.pivoterra.strategies.impl.GoogleDriveDownloadFilesStrategy;
 import co.pivoterra.utils.GoogleDriveBackup;
 import co.pivoterra.utils.GoogleDriveUtils;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
@@ -54,9 +50,6 @@ public class DriveBackup {
 
     private static final Logger LOG = Logger.getLogger(DriveBackup.class);
 
-    private static final ObjectMapper mapper = new ObjectMapper(new YAMLFactory().disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
-
-
     /**
      * Creates an authorized Credential object.
      *
@@ -92,12 +85,11 @@ public class DriveBackup {
                 .setApplicationName(APPLICATION_NAME)
                 .build();
         final GoogleDriveBackup googleDriveBackup = new GoogleDriveBackup(service);
-        final GoogleDrive googleDrive = mapper.readValue(new java.io.File("src/main/resources/googledrive.yml"), GoogleDrive.class);
 
         LOG.info("Starting Backup Folders");
-        googleDriveBackup.backup(new GoogleDriveCreateFoldersStrategy(googleDrive));
+        googleDriveBackup.backup(new GoogleDriveCreateFoldersStrategy());
         LOG.info("Starting Backup Files");
-        googleDriveBackup.backup(new GoogleDriveDownloadFilesStrategy(googleDrive));
-        GoogleDriveUtils.updateBackupDateTime(mapper);
+        googleDriveBackup.backup(new GoogleDriveDownloadFilesStrategy());
+        GoogleDriveUtils.updateBackupDateTime();
     }
 }

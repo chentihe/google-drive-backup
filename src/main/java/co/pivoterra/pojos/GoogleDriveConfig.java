@@ -1,12 +1,11 @@
 package co.pivoterra.pojos;
 
-import java.util.List;
 import java.util.Map;
 
-public class GoogleDrive {
+public class GoogleDriveConfig {
     private String lastBackupDate;
     private String rootFolderPath;
-    private List<GoogleMimeType> googleMimeTypes;
+    private Map<String, GoogleMimeType> googleMimeTypes;
     private Map<String, String> fields;
     private Map<String, String> query;
 
@@ -26,11 +25,11 @@ public class GoogleDrive {
         this.rootFolderPath = rootFolderPath;
     }
 
-    public List<GoogleMimeType> getGoogleMimeTypes() {
+    public Map<String, GoogleMimeType> getGoogleMimeTypes() {
         return googleMimeTypes;
     }
 
-    public void setGoogleMimeTypes(List<GoogleMimeType> googleMimeTypes) {
+    public void setGoogleMimeTypes(Map<String, GoogleMimeType> googleMimeTypes) {
         this.googleMimeTypes = googleMimeTypes;
     }
 
