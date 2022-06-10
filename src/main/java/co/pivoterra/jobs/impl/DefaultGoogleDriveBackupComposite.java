@@ -4,8 +4,6 @@ import co.pivoterra.jobs.GoogleDriveBackupComposite;
 import co.pivoterra.utils.GoogleDriveUtils;
 import com.google.api.services.drive.Drive;
 
-import java.io.IOException;
-
 public class DefaultGoogleDriveBackupComposite implements GoogleDriveBackupComposite {
     private final GoogleDriveBackupComposite[] backupTypes;
 
@@ -14,7 +12,7 @@ public class DefaultGoogleDriveBackupComposite implements GoogleDriveBackupCompo
     }
 
     @Override
-    public void backup(Drive service) throws IOException {
+    public void backup(Drive service) {
         for (GoogleDriveBackupComposite backupType : backupTypes) {
             backupType.backup(service);
         }

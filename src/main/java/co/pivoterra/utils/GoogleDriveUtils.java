@@ -18,12 +18,14 @@ import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
+import org.apache.log4j.Logger;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
@@ -32,10 +34,12 @@ import java.util.Objects;
 
 public class GoogleDriveUtils {
     /**
-     * Mapper to map the yaml file into the pojo
+     * Mapper to map the yaml file into the pojo.
      */
-    private static final ObjectMapper mapper = new ObjectMapper(new YAMLFactory().disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
-    private static final java.io.File googleDriveConfigFile = new java.io.File(GoogleConstants.GOOGLE_DRIVE_CONFIG_YML);
+    private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory().disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
+    private static final java.io.File GOOGLE_DRIVE_CONFIG_FILE = new java.io.File(GoogleConstants.GOOGLE_DRIVE_CONFIG_YML);
+
+
     /**
      * Directory to store authorization tokens for this application.
      */
@@ -49,7 +53,17 @@ public class GoogleDriveUtils {
     /**
      * Global instance of the JSON factory.
      */
-    private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
+    public static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
+    private static final Logger LOG = Logger.getLogger(GoogleDriveUtils.class);
+    private static GoogleDriveConfig config;
+
+    static {
+        try {
+            config = MAPPER.readValue(GOOGLE_DRIVE_CONFIG_FILE, GoogleDriveConfig.class);
+        } catch (IOException e) {
+            LOG.warn("[GoogleDriveConfig] Cannot read the yaml file, check if the file exist or not.");
+        }
+    }
 
     /**
      * Creates an authorized Credential object.
@@ -82,46 +96,55 @@ public class GoogleDriveUtils {
     /**
      * Fetch the file list by calling GET https://www.googleapis.com/drive/v3/files
      *
-     * @param service Google drive service
-     * @param fields Display fields of file while fetching the file from Google
-     * @param query Query parameters
+     * @param service    Google drive service
+     * @param fields     Display fields of file while fetching the file from Google
+     * @param query      Query parameters
      * @param backupDate Last backup date for update use
-     * @param pageToken Next page token
+     * @param pageToken  Next page token
      * @return File list
-     * @throws IOException
      */
-    public final static FileList fetchFileList(Drive service, String fields, String query, String backupDate, String pageToken) throws IOException {
-        return service.files().list()
-                .setFields(fields)
-                .setQ(String.format(query, backupDate))
-                .setSupportsAllDrives(true)
-                .setPageToken(pageToken)
-                .execute();
+    public final static FileList fetchFileList(Drive service, String fields, String query, String backupDate, String pageToken) {
+        try {
+            return service.files().list()
+                    .setFields(fields)
+                    .setQ(String.format(query, backupDate))
+                    .setSupportsAllDrives(true)
+                    .setPageToken(pageToken)
+                    .execute();
+        } catch (IOException e) {
+            LOG.warn("[fetchFileList] Cannot fetch the file list from google");
+        }
+        return null;
     }
 
     /**
      * Fetch the specific file by calling GET https://www.googleapis.com/drive/v3/files/fileId
      *
      * @param service Google drive service
-     * @param fileId File id
-     * @param fields Display fields of file while fetching the file from Google
-     * @return
-     * @throws IOException
+     * @param fileId  File id
+     * @param fields  Display fields of file while fetching the file from Google
+     * @return Detail of the specific file
      */
-    public final static File fetchFile(Drive service, String fileId, String fields) throws IOException {
-        return service.files().get(fileId).setFields(fields).execute();
+    public final static File fetchFile(Drive service, String fileId, String fields) {
+        try {
+            return service.files().get(fileId).setFields(fields).execute();
+        } catch (IOException e) {
+            LOG.warn("[fetchFile] Cannot fetch the file from google.");
+        }
+        return null;
     }
 
     /**
      * Update backup time so that it will only back up files whose
      * modified time is greater than last backup time
-     *
-     * @throws IOException
      */
-    //todo: backup time has to be set as UTC time zone
-    public final static void updateBackupTime() throws IOException {
-        getGoogleDriveConfig().setLastBackupDate(ZonedDateTime.now().format(DateTimeFormatter.ISO_INSTANT));
-        mapper.writeValue(googleDriveConfigFile, getGoogleDriveConfig());
+    public final static void updateBackupTime() {
+        config.setLastBackupDate(ZonedDateTime.now().format(DateTimeFormatter.ISO_INSTANT));
+        try {
+            MAPPER.writeValue(GOOGLE_DRIVE_CONFIG_FILE, getGoogleDriveConfig());
+        } catch (IOException e) {
+            LOG.warn("[updateBackupTime] Cannot write values into the yaml file.");
+        }
     }
 
     /**
@@ -129,20 +152,21 @@ public class GoogleDriveUtils {
      * into the correct path
      *
      * @param service Google drive service
-     * @param file File is ready to download / folder is ready to create
+     * @param file    File is ready to download / folder is ready to create
      * @return Absolute file path for download / creation
-     * @throws IOException
      */
-    public final static Path getFilePath(Drive service, File file) throws IOException {
+    public final static Path getFilePath(Drive service, File file) {
         if (Objects.isNull(file.getParents())) {
             return Path.of(getGoogleDriveConfig().getRootFolderPath(), file.getName().replace(java.io.File.separator, "_"));
         }
+
         List<String> parentIds = file.getParents();
-        final StringBuffer sb = new StringBuffer().append(java.io.File.separator).append(file.getName().replace(java.io.File.separator, "_"));
+        final StringBuffer sb = new StringBuffer().append(java.io.File.separator)
+                .append(file.getName().replace(java.io.File.separator, "_"));
 
         do {
             String parentId = parentIds.stream().findFirst().get();
-            File parentFolder = fetchFile(service, parentId, getGoogleDriveConfig().getFields().get(GoogleConstants.FILE));
+            final File parentFolder = fetchFile(service, parentId, getGoogleDriveConfig().getFields().get(GoogleConstants.FILE));
             sb.insert(0, parentFolder.getName()).insert(0, java.io.File.separator);
             parentIds = parentFolder.getParents();
         } while (Objects.nonNull(parentIds));
@@ -153,9 +177,26 @@ public class GoogleDriveUtils {
      * Set configurations in yaml file for easy modification
      *
      * @return google drive config
-     * @throws IOException
      */
-    public final static GoogleDriveConfig getGoogleDriveConfig() throws IOException {
-        return mapper.readValue(googleDriveConfigFile, GoogleDriveConfig.class);
+    public final static GoogleDriveConfig getGoogleDriveConfig() {
+        return config;
+    }
+
+    /**
+     * @param duration Duration between backup starting time and ending time
+     * @return Formatted datetime string
+     */
+    public static String durationFormat(Duration duration) {
+        long days = duration.toDays();
+        duration = duration.minusDays(days);
+        long hours = duration.toHours();
+        duration = duration.minusHours(hours);
+        long minutes = duration.toMinutes();
+        duration = duration.minusMinutes(minutes);
+        long seconds = duration.getSeconds();
+        return (days == 0 ? "" : days + " days ") +
+                (hours == 0 ? "" : hours + " hours ") +
+                (minutes == 0 ? "" : minutes + " minutes ") +
+                (seconds == 0 ? "" : seconds + " seconds");
     }
 }

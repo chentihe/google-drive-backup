@@ -9,7 +9,6 @@ public interface GoogleDriveBackupComposite {
      * backup logic of file and folder
      *
      * @param service Google Drive Service
-     * @throws IOException
      */
-    void backup(Drive service) throws IOException;
+    void backup(Drive service);
 }

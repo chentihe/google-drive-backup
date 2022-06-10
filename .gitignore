@@ -3,4 +3,4 @@ target/
 test/
 .idea/
 logs/
-src/**/resources/credentials.json
+credentials.json

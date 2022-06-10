@@ -1,5 +1,6 @@
-lastBackupDate: "2000-06-08T14:37:18.085207Z"
+lastBackupDate: "2022-06-10T03:43:34.677100Z"
 rootFolderPath: "/home/tihe/Desktop/test"
+applicationName: "gleaming-mason-352503"
 googleMimeTypes:
   application/vnd.google-apps.document:
     exportFormat: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -14,6 +15,8 @@ fields:
   files: "nextPageToken, files(id, name, mimeType, parents, modifiedTime, shortcutDetails)"
   file: "id, name, mimeType, parents, modifiedTime"
 query:
-  folder: "mimeType='application/vnd.google-apps.folder' and modifiedTime > '%s'"
+  folder: "mimeType='application/vnd.google-apps.folder' and modifiedTime > '%s' and\
+    \ trashed=false"
   file: "mimeType!='application/vnd.google-apps.folder' and mimeType!='application/vnd.google-apps.shortcut'\
-    \ and mimeType!='application/vnd.google-apps.map' and modifiedTime > '%s'"
+    \ and mimeType!='application/vnd.google-apps.map' and modifiedTime > '%s' and\
+    \ trashed=false"

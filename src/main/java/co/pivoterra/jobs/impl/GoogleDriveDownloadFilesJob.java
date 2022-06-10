@@ -1,7 +1,8 @@
 package co.pivoterra.jobs.impl;
 
-import co.pivoterra.pojos.GoogleMimeType;
 import co.pivoterra.jobs.GoogleDriveBackupComposite;
+import co.pivoterra.pojos.GoogleDriveConfig;
+import co.pivoterra.pojos.GoogleMimeType;
 import co.pivoterra.utils.GoogleConstants;
 import co.pivoterra.utils.GoogleDriveUtils;
 import com.google.api.services.drive.Drive;
@@ -21,57 +22,69 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class GoogleDriveDownloadFilesJob implements GoogleDriveBackupComposite {
     private final Logger LOG = Logger.getLogger(GoogleDriveDownloadFilesJob.class);
+    private final GoogleDriveConfig config;
+
+    public GoogleDriveDownloadFilesJob(GoogleDriveConfig config) {
+        this.config = config;
+    }
 
     @Override
-    public void backup(Drive service) throws IOException {
+    public void backup(Drive service) {
         LOG.info("Starting Backup Files");
         String pageToken = null;
-        AtomicInteger downloadFiles = new AtomicInteger();
+        final AtomicInteger downloadFiles = new AtomicInteger();
         final LocalTime startDownload = LocalTime.now();
 
         do {
-            FileList result = GoogleDriveUtils.fetchFileList(service,
-                    GoogleDriveUtils.getGoogleDriveConfig().getFields().get(GoogleConstants.FILES),
-                    GoogleDriveUtils.getGoogleDriveConfig().getQuery().get(GoogleConstants.FILE),
-                    GoogleDriveUtils.getGoogleDriveConfig().getLastBackupDate(), pageToken);
-            List<File> files = result.getFiles();
+            final FileList result = GoogleDriveUtils.fetchFileList(service,
+                    config.getFields().get(GoogleConstants.FILES),
+                    config.getQuery().get(GoogleConstants.FILE),
+                    config.getLastBackupDate(), pageToken);
+            if (Objects.nonNull(result)) {
+                final List<File> files = result.getFiles();
 
-            if (CollectionUtils.isNotEmpty(files)) {
-                files.parallelStream().forEach(file -> {
-                    try {
+                if (CollectionUtils.isNotEmpty(files)) {
+                    files.parallelStream().forEach(file -> {
                         downloadFile(service, file, file.getMimeType());
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    downloadFiles.getAndIncrement();
-                });
+                        downloadFiles.getAndIncrement();
+                    });
+                }
+                pageToken = result.getNextPageToken();
             }
-            pageToken = result.getNextPageToken();
         } while (pageToken != null);
 
         final LocalTime finishDownload = LocalTime.now();
-        LOG.info(String.format("Total Backup %d Files", downloadFiles.get()));
-        LOG.info(String.format("Time Duration: ", Duration.between(startDownload, finishDownload)));
+        LOG.info(String.format("Total Backup %d Files \nTime Duration: %s",
+                downloadFiles.get(),
+                GoogleDriveUtils.durationFormat(Duration.between(startDownload, finishDownload))));
     }
 
-    private void downloadFile(Drive service, File file, String mimeType) throws IOException {
+    private void downloadFile(Drive service, File file, String mimeType) {
         FileOutputStream fos = null;
-        Path path = GoogleDriveUtils.getFilePath(service, file);
+        final Path path = GoogleDriveUtils.getFilePath(service, file);
 
-        try {
-            // google mimetype needs to invoke service.files().export()
-            final GoogleMimeType googleMimeType = GoogleDriveUtils.getGoogleDriveConfig().getGoogleMimeTypes().get(mimeType);
-            if (Objects.nonNull(googleMimeType)) {
-                fos = new FileOutputStream(path.toAbsolutePath() + googleMimeType.getFileExtension());
-                service.files().export(file.getId(), googleMimeType.getExportFormat())
-                        .executeMediaAndDownloadTo(fos);
-            } else {
-                fos = new FileOutputStream(path.toAbsolutePath().toString());
-                service.files().get(file.getId())
-                        .executeMediaAndDownloadTo(fos);
+        if (Objects.nonNull(path)) {
+            try {
+                // google mimetype needs to invoke service.files().export()
+                final GoogleMimeType googleMimeType = GoogleDriveUtils.getGoogleDriveConfig().getGoogleMimeTypes().get(mimeType);
+                if (Objects.nonNull(googleMimeType)) {
+                    fos = new FileOutputStream(path.toAbsolutePath() + googleMimeType.getFileExtension());
+                    service.files().export(file.getId(), googleMimeType.getExportFormat())
+                            .executeMediaAndDownloadTo(fos);
+                } else {
+                    fos = new FileOutputStream(path.toAbsolutePath().toString());
+                    service.files().get(file.getId())
+                            .executeMediaAndDownloadTo(fos);
+                }
+            } catch (IOException e) {
+                LOG.warn(String.format("[downloadFile] Something went wrong while downloading file: %s", file.getName()));
+            } finally {
+                try {
+                    fos.close();
+                } catch (IOException e) {
+                    LOG.warn(String.format("[downloadFile] Something went wrong while closing the FileOutputStream of %s.", file.getName()));
+                }
             }
-        } finally {
-            fos.close();
         }
     }
 }

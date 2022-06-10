@@ -1,6 +1,7 @@
 package co.pivoterra.jobs.impl;
 
 import co.pivoterra.jobs.GoogleDriveBackupComposite;
+import co.pivoterra.pojos.GoogleDriveConfig;
 import co.pivoterra.utils.GoogleConstants;
 import co.pivoterra.utils.GoogleDriveUtils;
 import com.google.api.services.drive.Drive;
@@ -15,47 +16,58 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class GoogleDriveCreateFoldersJob implements GoogleDriveBackupComposite {
     private final Logger LOG = Logger.getLogger(GoogleDriveCreateFoldersJob.class);
+    private final GoogleDriveConfig config;
+
+    public GoogleDriveCreateFoldersJob(GoogleDriveConfig config) {
+        this.config = config;
+    }
 
     @Override
-    public void backup(Drive service)  throws IOException {
+    public void backup(Drive service) {
         LOG.info("Starting Backup Folders");
         String pageToken = null;
-        AtomicInteger createdFolders = new AtomicInteger();
+        final AtomicInteger createdFolders = new AtomicInteger();
         final LocalTime startDownload = LocalTime.now();
 
         do {
-            FileList result = GoogleDriveUtils.fetchFileList(service,
-                    GoogleDriveUtils.getGoogleDriveConfig().getFields().get(GoogleConstants.FILES),
-                    GoogleDriveUtils.getGoogleDriveConfig().getQuery().get(GoogleConstants.FOLDER),
-                    GoogleDriveUtils.getGoogleDriveConfig().getLastBackupDate(), pageToken);
-            List<File> files = result.getFiles();
+            final FileList result = GoogleDriveUtils.fetchFileList(service,
+                    config.getFields().get(GoogleConstants.FILES),
+                    config.getQuery().get(GoogleConstants.FOLDER),
+                    config.getLastBackupDate(), pageToken);
+            if (Objects.nonNull(result)) {
+                final List<File> files = result.getFiles();
 
-            if (CollectionUtils.isNotEmpty(files)) {
-                files.parallelStream().forEach(file -> {
-                    try {
-                        createFolder(service, file);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    createdFolders.getAndIncrement();
-                });
+                if (CollectionUtils.isNotEmpty(files)) {
+                    files.parallelStream().forEach(file -> {
+                        try {
+                            createFolder(service, file);
+                        } catch (IOException e) {
+                            LOG.warn(String.format("Something went wrong while creating folder: %s", file.getName()));
+                        }
+                        createdFolders.getAndIncrement();
+                    });
+                }
+                pageToken = result.getNextPageToken();
             }
-            pageToken = result.getNextPageToken();
         } while (pageToken != null);
 
         final LocalTime finishDownload = LocalTime.now();
-        LOG.info(String.format("Total Backup %d Folders", createdFolders.get()));
-        LOG.info(String.format("Time Duration: %d seconds", Duration.between(startDownload, finishDownload).getSeconds()));
+        LOG.info(String.format("Total Backup %d Folders \nTime Duration: %s",
+                createdFolders.get(),
+                GoogleDriveUtils.durationFormat(Duration.between(startDownload, finishDownload))));
     }
 
     private void createFolder(Drive service, File file) throws IOException {
-        Path path = GoogleDriveUtils.getFilePath(service, file);
-        if (!Files.exists(path)) {
-            Files.createDirectories(path);
+        final Path path = GoogleDriveUtils.getFilePath(service, file);
+        if (Objects.nonNull(path)) {
+            if (!Files.exists(path)) {
+                Files.createDirectories(path);
+            }
         }
     }
 }
