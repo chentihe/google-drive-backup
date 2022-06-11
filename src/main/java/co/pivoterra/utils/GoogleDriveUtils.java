@@ -35,9 +35,6 @@ public class GoogleDriveUtils {
      * If modifying these scopes, delete your previously saved tokens/ folder.
      */
     private static final List<String> SCOPES = Collections.singletonList(DriveScopes.DRIVE_READONLY);
-    /**
-     * Credentials absolute path
-     */
     private static final String CREDENTIALS_FILE_PATH = "/credentials.json";
     /**
      * Global instance of the JSON factory.
@@ -61,7 +58,8 @@ public class GoogleDriveUtils {
      * @throws IOException If the credentials.json file cannot be found.
      */
     public static HttpCredentialsAdapter getCredentials() throws IOException {
-        GoogleCredentials credentials = GoogleCredentials.fromStream(new FileInputStream(CREDENTIALS_FILE_PATH)).createScoped(SCOPES);
+        GoogleCredentials credentials = GoogleCredentials.fromStream(GoogleDriveUtils.class.getResourceAsStream(CREDENTIALS_FILE_PATH))
+                .createScoped(SCOPES);
         credentials.refreshIfExpired();
         return new HttpCredentialsAdapter(credentials);
     }
