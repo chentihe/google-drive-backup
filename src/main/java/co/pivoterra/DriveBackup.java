@@ -17,7 +17,7 @@ public class DriveBackup {
         if (Objects.nonNull(GoogleDriveUtils.getGoogleDriveConfig())) {
             // Build a new authorized API client service.
             final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
-            final Drive service = new Drive.Builder(HTTP_TRANSPORT, GoogleDriveUtils.JSON_FACTORY, GoogleDriveUtils.getCredentials(HTTP_TRANSPORT))
+            final Drive service = new Drive.Builder(HTTP_TRANSPORT, GoogleDriveUtils.JSON_FACTORY, GoogleDriveUtils.getCredentials())
                     .setApplicationName(GoogleDriveUtils.getGoogleDriveConfig().getApplicationName())
                     .build();
 
