@@ -15,6 +15,7 @@ import com.google.auth.oauth2.GoogleCredentials;
 import org.apache.log4j.Logger;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.ZonedDateTime;
@@ -106,6 +107,25 @@ public class GoogleDriveUtils {
     }
 
     /**
+     * Check the existence of root folder
+     * ex. In 2022, all files should be stored into rootFolder/2022
+     */
+    public final static void checkRootFolder() {
+        String year = getGoogleDriveConfig().getLastBackupDate().substring(0, 4);
+        Path rootFolderConcatYear = Path.of(getGoogleDriveConfig().getRootFolderPath(), year);
+        if (!rootFolderConcatYear.toAbsolutePath().toString()
+                .equals(getGoogleDriveConfig().getRootFolderByYear())) {
+            try {
+                Files.createDirectories(rootFolderConcatYear);
+                getGoogleDriveConfig().setRootFolderByYear(rootFolderConcatYear.toAbsolutePath().toString());
+                MAPPER.writeValue(GOOGLE_DRIVE_CONFIG_FILE, getGoogleDriveConfig());
+            } catch (IOException e) {
+                LOG.warn(String.format("Something went wrong while creating root folder: %s", rootFolderConcatYear));
+            }
+        }
+    }
+
+    /**
      * Update backup time so that it will only back up files whose
      * modified time is greater than last backup time
      */
@@ -128,7 +148,7 @@ public class GoogleDriveUtils {
      */
     public final static Path getFilePath(Drive service, File file) {
         if (Objects.isNull(file.getParents())) {
-            return Path.of(getGoogleDriveConfig().getRootFolderPath(), file.getName().replace(java.io.File.separator, "_"));
+            return Path.of(getGoogleDriveConfig().getRootFolderByYear(), file.getName().replace(java.io.File.separator, "_"));
         }
 
         List<String> parentIds = file.getParents();
@@ -141,7 +161,7 @@ public class GoogleDriveUtils {
             sb.insert(0, parentFolder.getName()).insert(0, java.io.File.separator);
             parentIds = parentFolder.getParents();
         } while (Objects.nonNull(parentIds));
-        return Path.of(getGoogleDriveConfig().getRootFolderPath(), sb.toString());
+        return Path.of(getGoogleDriveConfig().getRootFolderByYear(), sb.toString());
     }
 
     /**

@@ -5,6 +5,7 @@ import java.util.Map;
 public class GoogleDriveConfig {
     private String lastBackupDate;
     private String rootFolderPath;
+    private String rootFolderByYear;
     private String applicationName;
     private Map<String, GoogleMimeType> googleMimeTypes;
     private Map<String, String> fields;
@@ -24,6 +25,14 @@ public class GoogleDriveConfig {
 
     public void setRootFolderPath(String rootFolderPath) {
         this.rootFolderPath = rootFolderPath;
+    }
+
+    public String getRootFolderByYear() {
+        return rootFolderByYear;
+    }
+
+    public void setRootFolderByYear(String rootFolderByYear) {
+        this.rootFolderByYear = rootFolderByYear;
     }
 
     public String getApplicationName() {

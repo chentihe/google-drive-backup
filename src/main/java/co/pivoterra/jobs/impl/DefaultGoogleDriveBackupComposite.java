@@ -13,6 +13,7 @@ public class DefaultGoogleDriveBackupComposite implements GoogleDriveBackupCompo
 
     @Override
     public void backup(Drive service) {
+        GoogleDriveUtils.checkRootFolder();
         GoogleDriveUtils.updateBackupTime();
         for (GoogleDriveBackupComposite backupType : backupTypes) {
             backupType.backup(service);
