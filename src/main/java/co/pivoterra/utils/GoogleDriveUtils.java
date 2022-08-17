@@ -126,11 +126,24 @@ public class GoogleDriveUtils {
     }
 
     /**
+     * Store the start backup time for temp,
+     * will update when the backup process is done
+     */
+    public final static void updateCurrentBackupTime() {
+        config.setCurrentBackupDate(ZonedDateTime.now().format(DateTimeFormatter.ISO_INSTANT));
+        try {
+            MAPPER.writeValue(GOOGLE_DRIVE_CONFIG_FILE, getGoogleDriveConfig());
+        } catch (IOException e) {
+            LOG.warn("[updateBackupTime] Cannot write values into the yaml file.");
+        }
+    }
+
+    /**
      * Update backup time so that it will only back up files whose
      * modified time is greater than last backup time
      */
-    public final static void updateBackupTime() {
-        config.setLastBackupDate(ZonedDateTime.now().format(DateTimeFormatter.ISO_INSTANT));
+    public final static void updateLastBackupTime() {
+        config.setLastBackupDate(getGoogleDriveConfig().getCurrentBackupDate());
         try {
             MAPPER.writeValue(GOOGLE_DRIVE_CONFIG_FILE, getGoogleDriveConfig());
         } catch (IOException e) {

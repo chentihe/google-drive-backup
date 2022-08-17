@@ -4,6 +4,7 @@ import java.util.Map;
 
 public class GoogleDriveConfig {
     private String lastBackupDate;
+    private String currentBackupDate;
     private String rootFolderPath;
     private String rootFolderByYear;
     private String applicationName;
@@ -17,6 +18,14 @@ public class GoogleDriveConfig {
 
     public void setLastBackupDate(String lastBackupDate) {
         this.lastBackupDate = lastBackupDate;
+    }
+
+    public String getCurrentBackupDate() {
+        return currentBackupDate;
+    }
+
+    public void setCurrentBackupDate(String currentBackupDate) {
+        this.currentBackupDate = currentBackupDate;
     }
 
     public String getRootFolderPath() {
